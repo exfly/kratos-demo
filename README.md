@@ -6,7 +6,7 @@
 go install github.com/go-kratos/kratos/cmd/kratos/v2@latest
 kratos new helloworld
 
-docker-compose up -d prometheus pushgateway jaeger postgres exporter
+docker-compose up -d prometheus pushgateway jaeger postgres exporter redis
 ```
 
 ## Create a service

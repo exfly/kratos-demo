@@ -4,7 +4,6 @@ import (
 	"flag"
 	"os"
 
-	"helloworld/internal/conf"
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/config"
 	"github.com/go-kratos/kratos/v2/config/file"
@@ -12,12 +11,17 @@ import (
 	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"github.com/go-kratos/kratos/v2/transport/grpc"
 	"github.com/go-kratos/kratos/v2/transport/http"
+	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/trace"
+
+	"helloworld/internal/conf"
+	"helloworld/pkg/tracer"
 )
 
 // go build -ldflags "-X main.Version=x.y.z"
 var (
 	// Name is the name of the compiled software.
-	Name string
+	Name string = "helloworld"
 	// Version is the version of the compiled software.
 	Version string
 	// flagconf is the config flag.
@@ -42,6 +46,17 @@ func newApp(logger log.Logger, hs *http.Server, gs *grpc.Server) *kratos.App {
 			gs,
 		),
 	)
+}
+
+func newTracerProvider(c *conf.Monitor, logger log.Logger) (trace.TracerProvider, error) {
+	url := c.Tracer.Url
+
+	tp, err := tracer.NewTracerProvider("Server", url)
+	if err != nil {
+		return nil, errors.Wrap(err, "")
+	}
+
+	return tp, nil
 }
 
 func main() {
@@ -71,7 +86,7 @@ func main() {
 		panic(err)
 	}
 
-	app, cleanup, err := initApp(bc.Server, bc.Data, logger)
+	app, cleanup, err := initApp(bc.Server, bc.Data, bc.Monitor, logger)
 	if err != nil {
 		panic(err)
 	}

@@ -33,6 +33,7 @@ services:
     ports:
       - "6831:6831/udp"
       - "16686:16686"
+      - "14268:14268"
     restart: unless-stopped
 
   postgres:
@@ -47,6 +48,15 @@ services:
       - postgres:/var/lib/postgresql/data
     ports:
       - "127.0.0.1:5431:5432"
+  redis:
+    image: redis:5-alpine
+    container_name: redis
+    # command: ["redis-server", "--requirepass", "foobar", "--appendonly", "yes"]
+    volumes:
+      - redis:/data
+    restart: always
+    ports:
+      - 6379:6379
 
   pgdump:
     image: prodrigestivill/postgres-backup-local
@@ -83,3 +93,4 @@ services:
 volumes:
   prom_data:
   postgres:
+  redis:

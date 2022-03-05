@@ -6,6 +6,7 @@ option go_package = "helloworld/internal/conf;conf";
 import "google/protobuf/duration.proto";
 
 message Bootstrap {
+  Monitor monitor = 3;
   Server server = 1;
   Data data = 2;
 }
@@ -23,6 +24,13 @@ message Server {
   }
   HTTP http = 1;
   GRPC grpc = 2;
+}
+
+message Monitor {
+  message Tracer {
+    string url = 1;
+  }
+  Tracer tracer = 1;
 }
 
 message Data {
