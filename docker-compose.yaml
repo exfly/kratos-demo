@@ -1,0 +1,85 @@
+version: "3"
+
+# (?<=image:\s).+
+# grep 'image' docker-compose.yaml | awk '{ print $2 }'
+services:
+  grafana:
+    image: grafana/grafana:latest
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=grafana
+    ports:
+      - "3000:3000"
+
+  prometheus:
+    image: prom/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - 9091:9090
+    restart: unless-stopped
+    volumes:
+      - ./config/prometheus/:/etc/prometheus
+      - prom_data:/prometheus
+
+  pushgateway:
+    image: prom/pushgateway
+    ports:
+      - 9092:9091
+    restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "6831:6831/udp"
+      - "16686:16686"
+    restart: unless-stopped
+
+  postgres:
+    image: bitnami/postgresql:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      POSTGRESQL_POSTGRES_PASSWORD: postgres
+    restart: unless-stopped
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5431:5432"
+
+  pgdump:
+    image: prodrigestivill/postgres-backup-local
+    restart: always
+    # user: postgres:postgres # Optional: see below
+    volumes:
+      - ./pgdump:/backups
+    links:
+      - postgres
+    depends_on:
+      - postgres
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      # - POSTGRES_PASSWORD_FILE=/run/secrets/db_password <-- alternative for POSTGRES_PASSWORD (to use with docker secrets)
+      - POSTGRES_EXTRA_OPTS=-Z6 --schema=public --blobs
+      - SCHEDULE=@daily
+      # - SCHEDULE=* * * * * # 每分钟
+      - BACKUP_KEEP_DAYS=7
+      - BACKUP_KEEP_WEEKS=4
+      - BACKUP_KEEP_MONTHS=6
+      - HEALTHCHECK_PORT=8080
+
+  exporter:
+    image: prometheuscommunity/postgres-exporter
+    environment:
+      - DATA_SOURCE_NAME=postgresql://postgres:postgres@postgres:5432/postgres?sslmode=disable
+    ports:
+      - 9187:9187
+    restart: unless-stopped
+
+volumes:
+  prom_data:
+  postgres:
